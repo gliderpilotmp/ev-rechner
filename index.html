@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0d0f14">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="EV Rechner">
+  <meta name="description" content="Kostenvergleich Elektroauto vs. Verbrenner">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>EV Kostenrechner</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0d0f14;
+      --surface: #161921;
+      --surface2: #1e2330;
+      --border: #2a3040;
+      --accent-green: #00e5a0;
+      --accent-blue: #4d9fff;
+      --accent-amber: #ffb347;
+      --text: #e8eaf0;
+      --muted: #6b7280;
+      --input-bg: #111318;
+      --danger: #ff5f5f;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      font-family: 'DM Sans', sans-serif;
+      color: var(--text);
+      overscroll-behavior: none;
+    }
+
+    body {
+      overflow-y: auto;
+      padding-bottom: env(safe-area-inset-bottom, 16px);
+    }
+
+    /* ── Header ── */
+    .app-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      background: rgba(13,15,20,0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      padding: 16px 20px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .header-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.18em;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+    .header-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 22px;
+      font-weight: 800;
+      line-height: 1.15;
+      margin-top: 2px;
+    }
+    .header-title span { color: var(--accent-green); }
+
+    /* ── Main scroll area ── */
+    .main {
+      padding: 16px 16px 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 16px;
+    }
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .card-icon {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      flex-shrink: 0;
+    }
+    .icon-green { background: rgba(0,229,160,0.12); }
+    .icon-amber { background: rgba(255,179,71,0.12); }
+    .icon-blue  { background: rgba(77,159,255,0.12); }
+
+    .card-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+    }
+    .card-subtitle { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+    /* ── Input rows ── */
+    .input-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .input-row:last-child { margin-bottom: 0; }
+    .input-label {
+      flex: 1;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .input-wrap {
+      display: flex;
+      align-items: center;
+      background: var(--input-bg);
+      border: 1.5px solid var(--border);
+      border-radius: 11px;
+      overflow: hidden;
+      width: 140px;
+      transition: border-color 0.15s;
+    }
+    .input-wrap:focus-within {
+      border-color: var(--accent-green);
+      box-shadow: 0 0 0 3px rgba(0,229,160,0.08);
+    }
+    .input-wrap input {
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 15px;
+      font-weight: 500;
+      padding: 10px 8px 10px 12px;
+      width: 0;
+      flex: 1;
+      text-align: right;
+    }
+    /* Remove number input arrows */
+    .input-wrap input::-webkit-outer-spin-button,
+    .input-wrap input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .input-wrap input[type=number] { -moz-appearance: textfield; }
+
+    .input-unit {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--muted);
+      padding: 0 10px 0 4px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* ── Results card ── */
+    .results-card {
+      background: linear-gradient(135deg, rgba(0,229,160,0.05) 0%, rgba(77,159,255,0.03) 100%);
+      border: 1px solid rgba(0,229,160,0.18);
+      border-radius: 18px;
+      padding: 16px;
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+    .results-card.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .results-title {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.14em;
+      color: var(--accent-green);
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .result-block {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .result-block:last-of-type { border-bottom: none; }
+    .result-desc { font-size: 12px; color: var(--muted); line-height: 1.5; }
+    .result-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      padding: 2px 7px;
+      border-radius: 5px;
+      margin-top: 3px;
+    }
+    .badge-green { background: rgba(0,229,160,0.1); color: var(--accent-green); border: 1px solid rgba(0,229,160,0.2); }
+    .badge-amber { background: rgba(255,179,71,0.1); color: var(--accent-amber); border: 1px solid rgba(255,179,71,0.2); }
+    .badge-blue  { background: rgba(77,159,255,0.1); color: var(--accent-blue);  border: 1px solid rgba(77,159,255,0.2); }
+
+    .result-value {
+      font-family: 'DM Mono', monospace;
+      font-size: 22px;
+      font-weight: 500;
+    }
+    .val-green { color: var(--accent-green); }
+    .val-amber { color: var(--accent-amber); }
+    .val-blue  { color: var(--accent-blue); }
+
+    /* ── Comparison bars ── */
+    .compare-section {
+      margin-top: 14px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255,255,255,0.06);
+    }
+    .compare-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .compare-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .compare-pct {
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      color: var(--accent-green);
+    }
+    .bar-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 7px;
+    }
+    .bar-tag {
+      font-family: 'DM Mono', monospace;
+      font-size: 9px;
+      width: 22px;
+      flex-shrink: 0;
+    }
+    .bar-track {
+      flex: 1;
+      height: 7px;
+      background: var(--surface2);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      transition: width 0.6s cubic-bezier(0.22,1,0.36,1);
+      width: 0%;
+    }
+    .bar-fill-green { background: linear-gradient(90deg, var(--accent-green), #00c885); }
+    .bar-fill-amber { background: linear-gradient(90deg, var(--accent-amber), #e08800); }
+    .bar-amount {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      width: 56px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .savings-row {
+      display: flex;
+      justify-content: center;
+      margin-top: 14px;
+    }
+    .savings-pill {
+      background: rgba(77,159,255,0.1);
+      border: 1px solid rgba(77,159,255,0.25);
+      border-radius: 40px;
+      padding: 8px 20px;
+      text-align: center;
+    }
+    .savings-pill-label {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+    .savings-pill-value {
+      font-family: 'DM Mono', monospace;
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--accent-blue);
+    }
+
+    /* ── Button ── */
+    .calc-btn {
+      width: 100%;
+      height: 54px;
+      background: linear-gradient(135deg, #00e5a0, #00c47a);
+      border: none;
+      border-radius: 15px;
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      font-weight: 700;
+      color: #0a0f0d;
+      cursor: pointer;
+      box-shadow: 0 8px 28px rgba(0,229,160,0.22);
+      transition: transform 0.12s, box-shadow 0.12s;
+      letter-spacing: 0.01em;
+    }
+    .calc-btn:active {
+      transform: scale(0.97);
+      box-shadow: 0 4px 14px rgba(0,229,160,0.15);
+    }
+
+    /* ── Reset link ── */
+    .reset-row {
+      text-align: center;
+      padding: 4px 0 8px;
+    }
+    .reset-btn {
+      background: none;
+      border: none;
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--muted);
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    /* ── Install banner ── */
+    #install-banner {
+      display: none;
+      margin: 0 16px;
+      background: var(--surface);
+      border: 1px solid rgba(77,159,255,0.25);
+      border-radius: 14px;
+      padding: 12px 14px;
+      align-items: center;
+      gap: 10px;
+    }
+    #install-banner.show { display: flex; }
+    .install-text { flex: 1; font-size: 12px; color: var(--muted); line-height: 1.4; }
+    .install-text strong { color: var(--text); }
+    .install-yes {
+      background: var(--accent-blue);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .install-no {
+      background: none;
+      border: none;
+      color: var(--muted);
+      font-size: 18px;
+      cursor: pointer;
+      padding: 0 4px;
+    }
+
+    /* ── Divider ── */
+    .divider { height: 1px; background: var(--border); margin: 12px 0; }
+
+    /* ── Error state ── */
+    .input-wrap.error { border-color: var(--danger); }
+
+    /* ── Offline toast ── */
+    .toast {
+      position: fixed;
+      bottom: 80px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 18px;
+      font-size: 12px;
+      color: var(--muted);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s, transform 0.3s;
+      z-index: 100;
+      white-space: nowrap;
+    }
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+<!-- Install banner (Android Chrome) -->
+<div id="install-banner">
+  <div class="install-text"><strong>Als App installieren?</strong><br>Einmal tippen, immer dabei.</div>
+  <button class="install-yes" id="install-yes">Installieren</button>
+  <button class="install-no" id="install-no">✕</button>
+</div>
+
+<header class="app-header">
+  <div class="header-label">Kostenvergleich</div>
+  <div class="header-title">EV vs. <span>Verbrenner</span></div>
+</header>
+
+<main class="main">
+
+  <!-- ⚡ Elektroauto -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon icon-green">⚡</div>
+      <div>
+        <div class="card-title">Elektroauto</div>
+        <div class="card-subtitle">Stromkosten eingeben</div>
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div class="input-label">Strompreis</div>
+      <div class="input-wrap" id="wrap-strompreis">
+        <input type="number" id="strompreis" inputmode="decimal" step="0.01" min="0" placeholder="0,28" value="0.28">
+        <span class="input-unit">€/kWh</span>
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div class="input-label">Verbrauch EV</div>
+      <div class="input-wrap" id="wrap-ev-verbrauch">
+        <input type="number" id="ev-verbrauch" inputmode="decimal" step="0.1" min="0" placeholder="18,5" value="18.5">
+        <span class="input-unit">kWh/100km</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⛽ Verbrenner -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon icon-amber">⛽</div>
+      <div>
+        <div class="card-title">Verbrenner</div>
+        <div class="card-subtitle">Kraftstoffkosten eingeben</div>
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div class="input-label">Kraftstoffpreis</div>
+      <div class="input-wrap" id="wrap-kraftstoff">
+        <input type="number" id="kraftstoff" inputmode="decimal" step="0.01" min="0" placeholder="1,75" value="1.75">
+        <span class="input-unit">€/Liter</span>
+      </div>
+    </div>
+
+    <div class="input-row">
+      <div class="input-label">Verbrauch ICE</div>
+      <div class="input-wrap" id="wrap-ice-verbrauch">
+        <input type="number" id="ice-verbrauch" inputmode="decimal" step="0.1" min="0" placeholder="7,0" value="7.0">
+        <span class="input-unit">L/100km</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🛣 Strecke -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon icon-blue">🛣️</div>
+      <div>
+        <div class="card-title">Gesamtstrecke</div>
+        <div class="card-subtitle">Für Gesamtkostenberechnung</div>
+      </div>
+    </div>
+    <div class="input-row">
+      <div class="input-label">Kilometer gesamt</div>
+      <div class="input-wrap" id="wrap-km">
+        <input type="number" id="km" inputmode="numeric" step="100" min="0" placeholder="15000" value="15000">
+        <span class="input-unit">km</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Button -->
+  <button class="calc-btn" id="calc-btn" onclick="berechnen()">Berechnen</button>
+
+  <!-- Results (hidden until calculated) -->
+  <div class="results-card" id="results">
+    <div class="results-title">▶ Ergebnis</div>
+
+    <div class="result-block">
+      <div class="result-desc">
+        Kosten pro 100 km
+        <br><span class="result-badge badge-green">⚡ Elektro</span>
+      </div>
+      <div class="result-value val-green" id="res-ev-100">—</div>
+    </div>
+
+    <div class="result-block">
+      <div class="result-desc">
+        Kosten pro 100 km
+        <br><span class="result-badge badge-amber">⛽ Verbrenner</span>
+      </div>
+      <div class="result-value val-amber" id="res-ice-100">—</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="result-block">
+      <div class="result-desc">
+        Gesamtkosten Elektro
+        <br><span class="result-badge badge-green" id="km-label-ev">bei 15.000 km</span>
+      </div>
+      <div class="result-value val-green" id="res-ev-total">—</div>
+    </div>
+
+    <div class="result-block">
+      <div class="result-desc">
+        Gesamtkosten Verbrenner
+        <br><span class="result-badge badge-amber" id="km-label-ice">bei 15.000 km</span>
+      </div>
+      <div class="result-value val-amber" id="res-ice-total">—</div>
+    </div>
+
+    <!-- Comparison bars -->
+    <div class="compare-section">
+      <div class="compare-header">
+        <div class="compare-label">Kostenvergleich gesamt</div>
+        <div class="compare-pct" id="res-pct">−0 %</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-tag" style="color:var(--accent-green)">EV</div>
+        <div class="bar-track"><div class="bar-fill bar-fill-green" id="bar-ev"></div></div>
+        <div class="bar-amount val-green" id="bar-ev-label">—</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-tag" style="color:var(--accent-amber)">ICE</div>
+        <div class="bar-track"><div class="bar-fill bar-fill-amber" id="bar-ice"></div></div>
+        <div class="bar-amount val-amber" id="bar-ice-label">—</div>
+      </div>
+
+      <div class="savings-row">
+        <div class="savings-pill">
+          <div class="savings-pill-label">Ersparnis mit Elektro</div>
+          <div class="savings-pill-value" id="res-savings">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="reset-row" id="reset-row" style="display:none">
+    <button class="reset-btn" onclick="zuruecksetzen()">Eingaben zurücksetzen</button>
+  </div>
+
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── Helpers ──
+  function fmt(val) {
+    return val.toLocaleString('de-AT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+  }
+  function fmtKm(val) {
+    return val.toLocaleString('de-AT') + ' km';
+  }
+
+  function showToast(msg, ms = 2500) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), ms);
+  }
+
+  // ── Validation ──
+  function getVal(id, wrapId) {
+    const input = document.getElementById(id);
+    const wrap  = document.getElementById(wrapId);
+    const val   = parseFloat(input.value.replace(',', '.'));
+    if (isNaN(val) || val < 0) {
+      wrap.classList.add('error');
+      return null;
+    }
+    wrap.classList.remove('error');
+    return val;
+  }
+
+  // ── Calculate ──
+  function berechnen() {
+    const strompreis   = getVal('strompreis',   'wrap-strompreis');
+    const evVerbrauch  = getVal('ev-verbrauch', 'wrap-ev-verbrauch');
+    const kraftstoff   = getVal('kraftstoff',   'wrap-kraftstoff');
+    const iceVerbrauch = getVal('ice-verbrauch','wrap-ice-verbrauch');
+    const km           = getVal('km',           'wrap-km');
+
+    if ([strompreis, evVerbrauch, kraftstoff, iceVerbrauch, km].includes(null)) {
+      showToast('⚠ Bitte alle Felder korrekt ausfüllen');
+      return;
+    }
+
+    const ev100   = strompreis   * evVerbrauch;
+    const ice100  = kraftstoff   * iceVerbrauch;
+    const evTotal = ev100  * km / 100;
+    const iceTotal= ice100 * km / 100;
+    const savings = iceTotal - evTotal;
+    const pct     = iceTotal > 0 ? Math.round((1 - evTotal / iceTotal) * 100) : 0;
+
+    // Fill results
+    document.getElementById('res-ev-100').textContent  = fmt(ev100);
+    document.getElementById('res-ice-100').textContent = fmt(ice100);
+    document.getElementById('res-ev-total').textContent  = fmt(evTotal);
+    document.getElementById('res-ice-total').textContent = fmt(iceTotal);
+    document.getElementById('res-savings').textContent   = fmt(savings);
+    document.getElementById('res-pct').textContent = '−' + pct + ' %';
+
+    const kmFmt = fmtKm(km);
+    document.getElementById('km-label-ev').textContent  = 'bei ' + kmFmt;
+    document.getElementById('km-label-ice').textContent = 'bei ' + kmFmt;
+
+    // Bars
+    const max = Math.max(evTotal, iceTotal);
+    document.getElementById('bar-ev').style.width  = (evTotal  / max * 100).toFixed(1) + '%';
+    document.getElementById('bar-ice').style.width = (iceTotal / max * 100).toFixed(1) + '%';
+    document.getElementById('bar-ev-label').textContent  = fmt(evTotal);
+    document.getElementById('bar-ice-label').textContent = fmt(iceTotal);
+
+    // Show result card
+    const card = document.getElementById('results');
+    card.classList.add('visible');
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    document.getElementById('reset-row').style.display = 'block';
+  }
+
+  // ── Reset ──
+  function zuruecksetzen() {
+    document.getElementById('strompreis').value   = '0.28';
+    document.getElementById('ev-verbrauch').value = '18.5';
+    document.getElementById('kraftstoff').value   = '1.75';
+    document.getElementById('ice-verbrauch').value= '7.0';
+    document.getElementById('km').value           = '15000';
+    document.getElementById('results').classList.remove('visible');
+    document.getElementById('reset-row').style.display = 'none';
+    ['wrap-strompreis','wrap-ev-verbrauch','wrap-kraftstoff','wrap-ice-verbrauch','wrap-km']
+      .forEach(id => document.getElementById(id).classList.remove('error'));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── Enter key triggers calc ──
+  document.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') berechnen(); });
+  });
+
+  // ── PWA Install prompt ──
+  let deferredPrompt;
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    const banner = document.getElementById('install-banner');
+    banner.classList.add('show');
+    // Insert banner before header
+    document.querySelector('.app-header').before(banner);
+  });
+
+  document.getElementById('install-yes').addEventListener('click', () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then(() => {
+        deferredPrompt = null;
+        document.getElementById('install-banner').classList.remove('show');
+      });
+    }
+  });
+  document.getElementById('install-no').addEventListener('click', () => {
+    document.getElementById('install-banner').classList.remove('show');
+  });
+
+  // ── Service Worker ──
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+
+  // ── Offline indicator ──
+  window.addEventListener('offline', () => showToast('📵 Kein Internet – App funktioniert trotzdem', 4000));
+  window.addEventListener('online',  () => showToast('✅ Wieder online'));
+</script>
+</body>
+</html>
