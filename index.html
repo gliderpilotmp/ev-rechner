@@ -657,8 +657,41 @@
     document.getElementById('reset-row').style.display = 'none';
     ['wrap-strompreis','wrap-ev-verbrauch','wrap-kraftstoff','wrap-ice-verbrauch','wrap-km']
       .forEach(id => document.getElementById(id).classList.remove('error'));
+    localStorage.removeItem(STORE_KEY);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    showToast('🗑 Eingaben zurückgesetzt');
   }
+
+  // ── localStorage: Eingaben speichern & laden ──
+  const FIELDS = ['strompreis', 'ev-verbrauch', 'kraftstoff', 'ice-verbrauch', 'km'];
+  const STORE_KEY = 'ev-rechner-inputs';
+
+  function speichern() {
+    const data = {};
+    FIELDS.forEach(id => { data[id] = document.getElementById(id).value; });
+    localStorage.setItem(STORE_KEY, JSON.stringify(data));
+  }
+
+  function laden() {
+    try {
+      const data = JSON.parse(localStorage.getItem(STORE_KEY));
+      if (!data) return;
+      FIELDS.forEach(id => {
+        if (data[id] !== undefined && data[id] !== '') {
+          document.getElementById(id).value = data[id];
+        }
+      });
+      showToast('💾 Letzte Eingaben wiederhergestellt');
+    } catch (e) {}
+  }
+
+  // Bei jeder Änderung speichern
+  FIELDS.forEach(id => {
+    document.getElementById(id).addEventListener('input', speichern);
+  });
+
+  // Beim Start laden
+  laden();
 
   // ── Enter key triggers calc ──
   document.querySelectorAll('input').forEach(inp => {
