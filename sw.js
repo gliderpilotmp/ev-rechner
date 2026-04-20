@@ -1,4 +1,4 @@
-const CACHE = 'ev-rechner-v2';
+const CACHE = 'ev-rechner-v3';
 const ASSETS = [
   '/',
   '/index.html',
