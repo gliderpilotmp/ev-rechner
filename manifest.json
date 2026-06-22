@@ -1,8 +1,9 @@
 {
   "name": "EV Kostenrechner",
   "short_name": "EV Rechner",
-  "description": "Kostenvergleich Elektroauto vs. Verbrenner",
-  "start_url": "/",
+  "description": "Kostenvergleich Elektroauto vs. Verbrenner", 
+  "scope": "/ev-rechner/",
+  "start_url": "/ev-rechner", 
   "display": "standalone",
   "background_color": "#0d0f14",
   "theme_color": "#0d0f14",
