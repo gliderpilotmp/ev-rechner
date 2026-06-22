@@ -1,8 +1,8 @@
 const CACHE = 'ev-rechner-v3';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
+  '/ev-rechner/',
+  '/ev-rechner/index.html',
+  '/ev-rechner/manifest.json',
   'https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap'
 ];
 
@@ -29,7 +29,7 @@ self.addEventListener('fetch', e => {
         const clone = response.clone();
         caches.open(CACHE).then(cache => cache.put(e.request, clone));
         return response;
-      }).catch(() => caches.match('/index.html'));
+      }).catch(() => caches.match('/ev-rechner/index.html'));
     })
   );
 });
